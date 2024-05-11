@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<!-- Program exported to HTML using the KA Project Exporter by @MushyAvocado 
+https://www.khanacademy.org/computer-programming/ka-project-exporter/5195486791385088
+-->
+	
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<title>Enemies towards Player</title>
+	<style>
+		
+		
+		/* Change the color as you want */
+		:root {
+			--background-color: #000000;
+		}
+		
+		
+		html, body, #wrapper {
+			overflow: hidden;
+			width: 100%;
+		    height: 100%;
+			margin: 0px;
+			padding: 0px;
+		    width: calc(100% + 1px);
+		}
+		
+		body {
+		    background-color: var(--background-color);
+		}
+		
+		
+		canvas {
+			width: fit-content;
+			height: fit-content;
+		}
+		
+		canvas:focus {
+			outline: none;
+		}
+		
+		/* Automatically fits to the remaining height and centers the canvas it contains */
+		#wrapper {
+			padding: 0px;
+			margin: 0px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 100%;
+		}
+		
+</style>
+</head>
+<body id="wrapper">
+    <!-- Canvases with a class of "sketch" are applied to the program in the order importPJS() is called. -->
+    <canvas class="sketch"></canvas>
+	<!-- Load the PJS library -->
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/Khan/processing-js@master/processing.js"></script>
+	<!-- The exporter script must be loaded before the program script -->
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/Mushy-Avocado/KA-exporter@main/exporter.js"></script>
+	<!-- Run Khan Academy program and import PJS -->
+	<script type="application/javascript">
+		
+		
+		function program() {
+		    
+		    title("Enemies towards Player");
+		    size(600, 600);
+		    
+		    // All code goes here
+			//handles the keys pressed for moving the player
+			var keys = [];
+			keyPressed = function() {
+			    keys[keyCode] = true;
+			};
+			keyReleased = function() {
+			    keys[keyCode] = false;
+			};
+			
+			//player object
+			var player = {
+			    x: 300,
+			    y: 300,
+			    px: 300, //previous x
+			    py: 300, //previous y
+			    diameter: 50,
+			    vx: 0, //horizontal direction
+			    vy: 0, //vertical direction
+			    angle: 0,
+			    speed: 4
+			};
+			
+			//array to hold the enemies
+			var enemies = [];
+			
+			//add 5 enemies
+			for(var i = 0; i < 5; i++) {
+			    enemies.push(
+			        {
+			            x: random(50, width - 50),
+			            y: random(50, height - 50),
+			            diameter: 50,
+			            vx: 0, //horizontal direction
+			            vy: 0, //vertical direction
+			            angle: 0,
+			            speed: 2,
+			            range: random(150, 300), //distance to player
+			            destination: { //move to random location
+			                x: random(50, width - 50),
+			                y: random(50, height - 50)
+			            }
+			        }
+			    );
+			}
+			
+			var movePlayer = function() {
+			    //get the current x and y position
+			    player.px = player.x;
+			    player.py = player.y;
+			    
+			    //if no keys pressed then the vx/vy will reduce down to zero
+			    player.vx = lerp(player.vx, 0, 0.1);
+			    player.vy = lerp(player.vy, 0, 0.1);
+			    
+			    //sets the horizontal/vertical direction based on key pressed
+			    if(keys[LEFT]) {
+			        player.vx = -player.speed;
+			    }
+			    if(keys[RIGHT]) {
+			        player.vx =  player.speed;
+			    }
+			    if(keys[UP]) {
+			        player.vy = -player.speed;
+			    }
+			    if(keys[DOWN]) {
+			        player.vy =  player.speed;
+			    }
+			    
+			    //move the player in the current direction
+			    player.x+= player.vx;
+			    player.y+= player.vy;
+			    
+			    //set the angle based on previous x/y and new x/y
+			    player.angle = atan2(player.y - player.py, player.x - player.px);
+			};
+			
+			var drawPlayer = function() {
+			    pushMatrix();
+			        //translate to center of player so can rotate correctly
+			        translate(player.x, player.y);
+			        
+			        //rotate the player based on current angle
+			        rotate(player.angle);
+			        
+			        //body
+			        noStroke();
+			        fill(87, 190, 242);
+			        ellipse(0, 0, player.diameter, player.diameter);
+			        
+			        //eyes
+			        fill(40);
+			        ellipse(player.diameter * 0.2, -player.diameter * 0.2, player.diameter * 0.2, player.diameter * 0.2);
+			        ellipse(player.diameter * 0.2,  player.diameter * 0.2, player.diameter * 0.2, player.diameter * 0.2);
+			    popMatrix();
+			};
+			
+			var moveEnemies = function() {
+			    //loop through all the enemies
+			    for(var i = 0; i < enemies.length; i++) {
+			        //get the current enemy
+			        var enemy = enemies[i];
+			        
+			        //if enemy within range of the player then set direction/angle towards the player
+			        if(dist(enemy.x, enemy.y, player.x, player.y) < (enemy.range + player.diameter) / 2) {
+			            enemy.angle = atan2(player.y - enemy.y, player.x - enemy.x);
+			            enemy.vx = cos(enemy.angle) * enemy.speed;
+			            enemy.vy = sin(enemy.angle) * enemy.speed;
+			            
+			            //set the current enemy destination towards the player
+			            enemy.destination.x = player.x;
+			            enemy.destination.y = player.y;
+			        }
+			        //else move towards random direction (destination)
+			        else {
+			            //if reach the destination then set a new destination
+			            if(dist(enemy.destination.x, enemy.destination.y, enemy.x, enemy.y) < enemy.diameter / 2) {
+			                enemy.destination.x = random(50, width - 50);
+			                enemy.destination.y = random(50, height - 50);
+			            }
+			            
+			            //update the enemy angle and directions
+			            enemy.angle = atan2(enemy.destination.y - enemy.y, enemy.destination.x - enemy.x);
+			            enemy.vx = cos(enemy.angle) * enemy.speed;
+			            enemy.vy = sin(enemy.angle) * enemy.speed;
+			        }
+			        
+			        //move the enemy in the current direction
+			        enemy.x+= enemy.vx;
+			        enemy.y+= enemy.vy;
+			    }
+			};
+			
+			var drawEnemies = function() {
+			    //loop through each of the enemies
+			    for(var i = 0; i < enemies.length; i++) {
+			        //get the current enemy
+			        var enemy = enemies[i];
+			        
+			        pushMatrix();
+			            //translate to center of enemy so can rotate correctly
+			            translate(enemy.x, enemy.y);
+			            
+			            //rotate the enemy based on current angle
+			            rotate(enemy.angle);
+			        
+			            //range
+			            noStroke();
+			            fill(0, 5);
+			            ellipse(0, 0, enemy.range, enemy.range);
+			            
+			            //body
+			            fill(247, 84, 109);
+			            ellipse(0, 0, enemy.diameter, enemy.diameter);
+			            
+			            //eyes
+			            fill(40);
+			            ellipse(enemy.diameter * 0.2, -enemy.diameter * 0.2, enemy.diameter * 0.2, enemy.diameter * 0.2);
+			            ellipse(enemy.diameter * 0.2,  enemy.diameter * 0.2, enemy.diameter * 0.2, enemy.diameter * 0.2);
+			        popMatrix();
+			    }
+			};
+			
+			draw = function() {
+			    background(255);
+			    
+			    //move/draw the player
+			    movePlayer();
+			    drawPlayer();
+			    
+			    //move/draw the enemies
+			    moveEnemies();
+			    drawEnemies();
+			};
+			
+			
+		}
+		
+		runPJS(program);
+		
+		// Add reload button on KA --> <script>
+		
+	</script>
+</body>
+
+</html>
